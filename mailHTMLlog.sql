@@ -3,8 +3,8 @@ AS
 BEGIN
 
     -- Drop the temporary table if it exists
-    IF OBJECT_ID('tempdb..#ENVIOLOG') IS NOT NULL
-        DROP TABLE #EnvioLog;
+    IF OBJECT_ID('tempdb..#LogSend') IS NOT NULL
+        DROP TABLE #LogSend;
 
     -- Select and transform data into the temporary table
     SELECT 
@@ -24,10 +24,10 @@ BEGIN
                 RIGHT('0' + CAST((DATEDIFF(SECOND, a.[LogStart], a.[LogEnd])/ 60) % 60 AS VARCHAR),2) + ':' +
                 RIGHT('0' + CAST(DATEDIFF(SECOND, a.[LogStart], a.[LogEnd]) % 60 AS VARCHAR),2)
         END AS ExecutionTime
-    INTO #EnvioLog
-    FROM PCAP_ARG_HOM.dbo.tbLogImportacao a 
-    LEFT JOIN PCAP_ARG_HOM.dbo.tbControleImportacao b 
-        ON a.IdDistribuidor = b.IdDistribuidor
+    INTO #LogSend
+    FROM dbo.tbLogImport a 
+    LEFT JOIN dbo.ImportControl b 
+        ON a.DealerID = b.DealerID
     WHERE 1=1
     AND a.LogStart BETWEEN DATEADD(HOUR, -1.5, GETDATE()) AND DATEADD(HOUR, 1.5, GETDATE())
     ORDER BY IdLog DESC
@@ -68,13 +68,13 @@ BEGIN
                     <TH CLASS="SUBHEADER">IdLog</TH>
                     <TH CLASS="SUBHEADER">Data</TH>
                     <TH CLASS="SUBHEADER">Dealer</TH>
-                    <TH CLASS="SUBHEADER">Inicio</TH>
-                    <TH CLASS="SUBHEADER">Fim</TH>
-                    <TH CLASS="SUBHEADER">Arq_Venta</TH>
-                    <TH CLASS="SUBHEADER">Qtd_Venta</TH>
-                    <TH CLASS="SUBHEADER">Arq_Stock</TH>
-                    <TH CLASS="SUBHEADER">Qtd_Stock</TH>
-                    <TH CLASS="SUBHEADER">TempoExecucao</TH>
+                    <TH CLASS="SUBHEADER">Start</TH>
+                    <TH CLASS="SUBHEADER">End</TH>
+                    <TH CLASS="SUBHEADER">SalesFile</TH>
+                    <TH CLASS="SUBHEADER">Qty_Sales</TH>
+                    <TH CLASS="SUBHEADER">StockFile</TH>
+                    <TH CLASS="SUBHEADER">Qty_Stock</TH>
+                    <TH CLASS="SUBHEADER">ExecTime</TH>
                 </TR>'
 
     -- Declare cursor for iterating log records
@@ -113,13 +113,13 @@ BEGIN
 
     -- Define email subject
     DECLARE @ASSUNTO VARCHAR(100)
-    SET @ASSUNTO = 'PCAP ARGENTINA - LOG - ' + CAST(CAST(GETDATE() AS DATE) AS VARCHAR(100))
+    SET @ASSUNTO = 'PROJECT_NAME - LOG - ' + CAST(CAST(GETDATE() AS DATE) AS VARCHAR(100))
 
     -- Send email with the generated HTML content
     EXEC msdb.dbo.sp_send_dbmail 
         @subject = @ASSUNTO,
         @body = @HTML,
         @body_format = 'HTML',
-        @recipients = '"Fake Name 1" <fake.email1@example.com>; "Fake Name 2" <fake.email2@example.com>'
+        @recipients = '"Data Analyst Name" <fake.email1@example.com>; "Stakeholder Name" <fake.email2@example.com>'
 
 END
